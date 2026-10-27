@@ -72,7 +72,7 @@ DEFAULT_TYPE_LIBS = [
     r"/home/moritz/Git-Repos/4diac_training1/Ventilsteuerung/4diacIDE-workspace/test_B",
 ]
 
-_FONTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+_FONTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tgl")
 TGL_17_PATH = os.path.join(_FONTS_DIR, "TGL 0-17.ttf")
 TGL_16_PATH = os.path.join(_FONTS_DIR, "TGL 0-16.ttf")
 
