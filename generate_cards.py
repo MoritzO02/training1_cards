@@ -12,6 +12,7 @@ import glob
 import base64
 import argparse
 import itertools
+import concurrent.futures
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Optional, Set
@@ -2295,6 +2296,41 @@ def resolve_sub_file(sub_arg: str, folders: List[str]) -> str:
     return sub_arg
 
 
+_worker_resolver: Optional[TypeResolver] = None
+
+
+def _init_batch_worker(type_libs: List[str]) -> None:
+    """ProcessPoolExecutor initializer: builds the type-library index once per worker
+    process (the expensive rglob scan over .lib/test_AX/test_B) and keeps it in a module
+    global, so every exercise this worker processes afterwards reuses it."""
+    global _worker_resolver
+    _worker_resolver = TypeResolver(type_libs)
+
+
+def _batch_process_one(fpath: str, output_root: str, folders: List[str], with_back: bool) -> Tuple[str, str, bool, Optional[str]]:
+    """Generates every card variant for one exercise. Runs in a worker process; returns a
+    plain (picklable) result tuple instead of raising, since exceptions from arbitrary
+    library code are not guaranteed to unpickle cleanly across the process boundary."""
+    b_name = os.path.splitext(os.path.basename(fpath))[0]
+    out_paths = get_output_paths(fpath, output_root, folders)
+    try:
+        svg_content = generate_card_svg(fpath, resolver=_worker_resolver)
+        with open(os.path.join(out_paths["svg"], f"{b_name}_card.svg"), "w", encoding="utf-8") as f:
+            f.write(svg_content)
+        if with_back:
+            with open(os.path.join(out_paths["svg"], f"{b_name}_card_back.svg"), "w", encoding="utf-8") as f:
+                f.write(generate_card_back_svg(fpath))
+        generate_single_card_pdf(fpath, os.path.join(out_paths["single"], f"{b_name}_single.pdf"), with_back=with_back,
+                                  svg_content=svg_content)
+        generate_printshop_pdf(fpath, os.path.join(out_paths["printshop"], f"{b_name}_printshop.pdf"), with_back=with_back,
+                                svg_content=svg_content)
+        generate_exact_size_pdf(fpath, os.path.join(out_paths["exact_70x90"], f"{b_name}_exact_70x90.pdf"), with_back=with_back,
+                                 svg_content=svg_content)
+        return b_name, out_paths["subfolder"], True, None
+    except Exception as e:
+        return b_name, out_paths["subfolder"], False, str(e)
+
+
 def main():
     arg_parser = argparse.ArgumentParser(description="Generate 7x9cm portrait training cards from 4diac exercises.")
     arg_parser.add_argument("--sub", type=str, default=DEFAULT_EXERCISE, help="Path to .SUB exercise file")
@@ -2303,6 +2339,8 @@ def main():
     arg_parser.add_argument("--check-layout", action="store_true", help="Analyze exercise layouts and generate fix-TODO.md")
     arg_parser.add_argument("--no-back", action="store_true", help="Omit the card back (QR code to the exercise documentation) in all PDFs")
     arg_parser.add_argument("--limit", type=int, default=None, help="Limit number of exercises to process (useful for testing)")
+    arg_parser.add_argument("--jobs", type=int, default=None,
+                             help="Parallel worker processes for --batch-all (default: CPU count; use 1 to disable parallelism)")
     arg_parser.add_argument(
         "--folder", "--folders",
         dest="folders",
@@ -2356,29 +2394,38 @@ def main():
                 type_libs.append(sdir)
         batch_resolver = TypeResolver(type_libs)
 
+        # Exercises are fully independent of each other, so the per-exercise generation (by far
+        # the bulk of a batch run) is split across worker processes. Each worker builds its own
+        # TypeResolver once (via the initializer) and reuses it for every exercise it is given,
+        # same as the single-process batch_resolver above - only the file-system scan that builds
+        # it is repeated once per worker instead of once per exercise.
         files_by_folder = defaultdict(list)
-        for i, fpath in enumerate(files):
-            b_name = os.path.splitext(os.path.basename(fpath))[0]
-            out_paths = get_output_paths(fpath, output_root, args.folders)
-            subfolder = out_paths["subfolder"]
+        for fpath in files:
+            subfolder = get_exercise_subfolder(fpath, args.folders)
             files_by_folder[subfolder].append(fpath)
 
-            print(f"[{i+1}/{len(files)}] [{subfolder or 'default'}] Processing {b_name}...", flush=True)
-            try:
-                svg_content = generate_card_svg(fpath, resolver=batch_resolver)
-                with open(os.path.join(out_paths["svg"], f"{b_name}_card.svg"), "w", encoding="utf-8") as f:
-                    f.write(svg_content)
-                if with_back:
-                    with open(os.path.join(out_paths["svg"], f"{b_name}_card_back.svg"), "w", encoding="utf-8") as f:
-                        f.write(generate_card_back_svg(fpath))
-                generate_single_card_pdf(fpath, os.path.join(out_paths["single"], f"{b_name}_single.pdf"), with_back=with_back,
-                                          svg_content=svg_content)
-                generate_printshop_pdf(fpath, os.path.join(out_paths["printshop"], f"{b_name}_printshop.pdf"), with_back=with_back,
-                                        svg_content=svg_content)
-                generate_exact_size_pdf(fpath, os.path.join(out_paths["exact_70x90"], f"{b_name}_exact_70x90.pdf"), with_back=with_back,
-                                         svg_content=svg_content)
-            except Exception as e:
-                print(f"  [WARNUNG] Fehler bei {b_name}: {e}", flush=True)
+        n_jobs = args.jobs if args.jobs and args.jobs > 0 else (os.cpu_count() or 1)
+        n_jobs = max(1, min(n_jobs, len(files))) if files else 1
+        print(f"Verwende {n_jobs} parallele Worker-Prozesse...", flush=True)
+
+        done = 0
+        if n_jobs > 1:
+            with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=n_jobs, initializer=_init_batch_worker, initargs=(type_libs,)) as pool:
+                futures = [pool.submit(_batch_process_one, fpath, output_root, args.folders, with_back)
+                           for fpath in files]
+                for future in concurrent.futures.as_completed(futures):
+                    b_name, subfolder, ok, err = future.result()
+                    done += 1
+                    status = "OK" if ok else f"[WARNUNG] Fehler bei {b_name}: {err}"
+                    print(f"[{done}/{len(files)}] [{subfolder or 'default'}] {b_name}: {status}", flush=True)
+        else:
+            _init_batch_worker(type_libs)
+            for fpath in files:
+                b_name, subfolder, ok, err = _batch_process_one(fpath, output_root, args.folders, with_back)
+                done += 1
+                status = "OK" if ok else f"[WARNUNG] Fehler bei {b_name}: {err}"
+                print(f"[{done}/{len(files)}] [{subfolder or 'default'}] {b_name}: {status}", flush=True)
 
         # Generate multi-card PDFs per folder
         for sfolder, folder_files in files_by_folder.items():
