@@ -845,6 +845,34 @@ def generate_card_svg(subapp_file: str, type_libs: Optional[List[str]] = None,
             inst.render_x += (old_w - inst.block_width) / 2.0
             inst.render_y = y
 
+    # A handful of exercises fit without overlapping (no warning from the safety net above) but
+    # still read as cluttered: several closely-grouped adapter/socket connections bunch into one
+    # indistinguishable band (e.g. Uebung_004b3_AX, between AX_E_SWITCH and AX_SPLIT_2). Block
+    # positions come from the exercise's own 4diac layout, so we deliberately do not reorder them;
+    # shrinking every block in place (around its own center, same as the safety net above) instead
+    # opens up the fixed-width gaps between columns, giving the connection router visibly more room
+    # to fan parallel lines out instead of bunching them. Curated by eye, not a generic "busy card"
+    # heuristic, since "looks confusing" cannot be measured automatically - and it only helps when
+    # the clutter is this kind of tight parallel-line bunching between two adjacent columns; tried
+    # on Uebung_006_SAFE_AX_02 too, but that card's crossings run card-wide between 8 interface pins
+    # and 4 blocks, which shrinking does not untangle, so it was left out.
+    CARD_DECLUTTER_SCALE = {
+        "Uebung_004b3_AX": 0.82,
+    }
+    exercise_name = os.path.splitext(os.path.basename(subapp_file))[0]
+    declutter_scale = CARD_DECLUTTER_SCALE.get(exercise_name)
+    if declutter_scale is not None:
+        for inst in logic_instances:
+            old_w, old_h = inst.block_width, inst.block_height
+            inst.block_width *= declutter_scale
+            inst.block_height *= declutter_scale
+            inst.name_section_bottom *= declutter_scale
+            if getattr(inst, "adapter_section_top", None) is not None:
+                inst.adapter_section_top *= declutter_scale
+            inst.extra_scale *= declutter_scale
+            inst.render_x += (old_w - inst.block_width) / 2.0
+            inst.render_y += (old_h - inst.block_height) / 2.0
+
     # Snap blocks fed by input pins to the 1 cm pin grid: shift each block so that the port of its topmost
     # nearly aligned pin->port connection (max. 20 units off) sits exactly at the pin height; the other
     # ports keep their fixed spacing and are bent normally by the router
