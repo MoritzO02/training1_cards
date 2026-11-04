@@ -8,16 +8,16 @@ Dieses Dokument erfasst alle Übungen, bei denen die Platzierung der Bausteine o
 > Sobald die betroffenen FBs oder Anschlüsse in der 4diacIDE angepasst und gespeichert werden, erzeugt der Generator beim nächsten Durchlauf automatisch ein sauberes, kreuzungsfreies Kartenlayout!
 
 ## Übersicht
-- **Geprüfte Übungen:** 875
-- **Übungen mit Optimierungsbedarf:** 40
-- **test_AX:** 22 Übungen
+- **Geprüfte Übungen:** 874
+- **Übungen mit Optimierungsbedarf:** 41
+- **test_AX:** 23 Übungen
 - **test_B:** 18 Übungen
 
 ---
 
 ## Offene Layout-TODOs
 
-### test_AX (22 Übungen)
+### test_AX (23 Übungen)
 
 - [ ] **Uebung_006a2_AX** (`../4diac_training1/Ventilsteuerung/4diacIDE-workspace/test_AX/Uebungen/Uebung_006a2_AX.SUB`)
   - Baustein unglücklich platziert: `AX_T_FF_SR_Q1` (AX_T_FF_SR, verbunden mit I2) liegt bei y=-900 oberhalb von `AX_T_FF_SR_Q2` (AX_T_FF_SR, verbunden mit I1, y=100). Empfehlung: `AX_T_FF_SR_Q1` in 4diac nach unten verschieben (unterhalb von `AX_T_FF_SR_Q2`, z.B. y > 100).
@@ -28,6 +28,10 @@ Dieses Dokument erfasst alle Übungen, bei denen die Platzierung der Bausteine o
   - Signalleitungen kreuzen sich an `RampLimitFS` (AUDI_RampLimitFS): Eingang I2 ist mit unterem Port `UP_SLOW` (Position 5) verbunden, während I3 mit oberem Port `DOWN_SLOW` (Position 4) verbunden ist. Hinweis: Am Baustein liegt `UP_SLOW` unterhalb von `DOWN_SLOW`, auf der Karte jedoch I2 oberhalb von I3. Falls die Pin-Zuordnung der Übung anpassbar ist, empfiehlt sich I2 für `DOWN_SLOW` und I3 für `UP_SLOW` für eine kreuzungsfreie Signalführung; andernfalls wird die Kreuzung im Kartengenerator über gestaffelte Kanäle geführt.
   - Signalleitungen kreuzen sich an `RampLimitFS` (AUDI_RampLimitFS): Eingang I2 ist mit unterem Port `UP_SLOW` (Position 5) verbunden, während I3 mit oberem Port `DOWN_FAST` (Position 3) verbunden ist. Hinweis: Am Baustein liegt `UP_SLOW` unterhalb von `DOWN_FAST`, auf der Karte jedoch I2 oberhalb von I3. Falls die Pin-Zuordnung der Übung anpassbar ist, empfiehlt sich I2 für `DOWN_FAST` und I3 für `UP_SLOW` für eine kreuzungsfreie Signalführung; andernfalls wird die Kreuzung im Kartengenerator über gestaffelte Kanäle geführt.
 
+- [ ] **Uebung_019a_AX** (`../4diac_training1/Ventilsteuerung/4diacIDE-workspace/test_AX/Uebungen/Uebung_019a_AX.SUB`)
+  - Signalleitungen kreuzen sich an `Select_4_AUI` (AUI_AUI_MUX_4_VAL): Eingang I1 ist mit unterem Port `EI1` (Position 2) verbunden, während I3 mit oberem Port `EI4` (Position 1) verbunden ist. Hinweis: Am Baustein liegt `EI1` unterhalb von `EI4`, auf der Karte jedoch I1 oberhalb von I3. Falls die Pin-Zuordnung der Übung anpassbar ist, empfiehlt sich I1 für `EI4` und I3 für `EI1` für eine kreuzungsfreie Signalführung; andernfalls wird die Kreuzung im Kartengenerator über gestaffelte Kanäle geführt.
+  - Signalleitungen kreuzen sich an `Select_4_AUI` (AUI_AUI_MUX_4_VAL): Eingang I2 ist mit unterem Port `EI2` (Position 3) verbunden, während I3 mit oberem Port `EI4` (Position 1) verbunden ist. Hinweis: Am Baustein liegt `EI2` unterhalb von `EI4`, auf der Karte jedoch I2 oberhalb von I3. Falls die Pin-Zuordnung der Übung anpassbar ist, empfiehlt sich I2 für `EI4` und I3 für `EI2` für eine kreuzungsfreie Signalführung; andernfalls wird die Kreuzung im Kartengenerator über gestaffelte Kanäle geführt.
+
 - [ ] **Uebung_019b_AX** (`../4diac_training1/Ventilsteuerung/4diacIDE-workspace/test_AX/Uebungen/Uebung_019b_AX.SUB`)
   - Baustein unglücklich platziert: `Select_4_AUI` (AUI_AUI_MUX_4_VAL, verbunden mit I2) liegt bei y=-300 oberhalb von `AX_SR` (AX_SR, verbunden mit I1, y=1800). Empfehlung: `Select_4_AUI` in 4diac nach unten verschieben (unterhalb von `AX_SR`, z.B. y > 1800).
   - Baustein unglücklich platziert: `Select_4_AUI` (AUI_AUI_MUX_4_VAL, verbunden mit I3) liegt bei y=-300 oberhalb von `AX_SR` (AX_SR, verbunden mit I2, y=1800). Empfehlung: `Select_4_AUI` in 4diac nach unten verschieben (unterhalb von `AX_SR`, z.B. y > 1800).
@@ -37,6 +41,8 @@ Dieses Dokument erfasst alle Übungen, bei denen die Platzierung der Bausteine o
 
 - [ ] **Uebung_019c_AX** (`../4diac_training1/Ventilsteuerung/4diacIDE-workspace/test_AX/Uebungen/Uebung_019c_AX.SUB`)
   - Baustein unglücklich platziert: `AX_E_PERMIT_INVERT_1` (AX_E_PERMIT_INVERT_3, verbunden mit I4) liegt bei y=-200 oberhalb von `AX_SPLIT_4` (AX_SPLIT_2, verbunden mit I3, y=3100). Empfehlung: `AX_E_PERMIT_INVERT_1` in 4diac nach unten verschieben (unterhalb von `AX_SPLIT_4`, z.B. y > 3100).
+  - Signalleitungen kreuzen sich an `AX_E_PERMIT_INVERT_1` (AX_E_PERMIT_INVERT_3): Eingang I1 ist mit unterem Port `EI1` (Position 2) verbunden, während I4 mit oberem Port `EI3` (Position 1) verbunden ist. Hinweis: Am Baustein liegt `EI1` unterhalb von `EI3`, auf der Karte jedoch I1 oberhalb von I4. Falls die Pin-Zuordnung der Übung anpassbar ist, empfiehlt sich I1 für `EI3` und I4 für `EI1` für eine kreuzungsfreie Signalführung; andernfalls wird die Kreuzung im Kartengenerator über gestaffelte Kanäle geführt.
+  - Signalleitungen kreuzen sich an `AX_E_PERMIT_INVERT_1` (AX_E_PERMIT_INVERT_3): Eingang I2 ist mit unterem Port `EI2` (Position 3) verbunden, während I4 mit oberem Port `EI3` (Position 1) verbunden ist. Hinweis: Am Baustein liegt `EI2` unterhalb von `EI3`, auf der Karte jedoch I2 oberhalb von I4. Falls die Pin-Zuordnung der Übung anpassbar ist, empfiehlt sich I2 für `EI3` und I4 für `EI2` für eine kreuzungsfreie Signalführung; andernfalls wird die Kreuzung im Kartengenerator über gestaffelte Kanäle geführt.
 
 - [ ] **Uebung_028a2_AR** (`../4diac_training1/Ventilsteuerung/4diacIDE-workspace/test_AX/Uebungen/Uebung_028a2_AR.SUB`)
   - Baustein unglücklich platziert: `CALIBRATE` (AR_CALIBRATE, verbunden mit I3) liegt bei y=1500 oberhalb von `AX_SPLIT_2` (AX_SPLIT_2, verbunden mit I2, y=3300). Empfehlung: `CALIBRATE` in 4diac nach unten verschieben (unterhalb von `AX_SPLIT_2`, z.B. y > 3300).
